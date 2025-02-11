@@ -46,7 +46,7 @@ plcConnect(PLC_IP).then(() => {
 });
 
 app.post("/write", async (req, res) => {
-  const { value, wordLength = 2 } = req.body;
+  const { value } = req.body;
   console.log("Valor recebido:", value);
 
   if (typeof value !== "number") {
@@ -54,21 +54,11 @@ app.post("/write", async (req, res) => {
     return res.status(400).json({ error: "Valor inválido" });
   }
 
-  if (![2, 4].includes(wordLength)) {
-    return res.status(400).json({ error: "wordLength inválido. Use 2 (Int16) ou 4 (Int32)." });
-  }
-
-  const buffer = Buffer.alloc(wordLength);
+  const buffer = Buffer.alloc(2);
 
   try {
-    if (wordLength === 2) {
-      buffer.writeInt16BE(value, 0); // Int16 (2 bytes)
-    } else {
-      buffer.writeInt32BE(value, 0); // Int32 (4 bytes)
-    }
-
-    // Escrever no PLC (DB100, byte 14)
-    s7client.MBWrite(1, 2, buffer, (err) => {
+    buffer.writeUInt16BE(value, 0);
+    s7client.WriteArea(0x83, 1, 1, 2, 0x02, buffer, (err) => {
       if (err) {
         console.log("Erro ao escrever no PLC:", s7client.ErrorText(err));
         return res.status(500).json({ error: s7client.ErrorText(err) });
